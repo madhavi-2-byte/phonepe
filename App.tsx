@@ -5,7 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 
 // Import your screens
 import HomeScreen from './screens/HomeScreen';
-import PaymentScreen from './screens/PaymentScreen';
+import PaymentScreen from './screens/PaymentSuccessScreen';
 
 const Stack = createStackNavigator();
 
