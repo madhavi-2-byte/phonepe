@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,27 +11,42 @@ import {
 import axios from "axios";
 
 const CoinSelectionScreen = ({ navigation }) => {
-  const [userBalance, setUserBalance] = useState(5000);
+  const [userBalance, setUserBalance] = useState(0); // Initially 0
   const [selectedAmount, setSelectedAmount] = useState(0);
   const [customAmount, setCustomAmount] = useState("");
 
   const coinOptions = [50, 100, 500, 1000, 2000, 5000];
 
-  // Handle coin selection
+  useEffect(() => {
+    fetchUserBalance();
+  }, []);
+
+  const fetchUserBalance = async () => {
+    try {
+      const response = await axios.get("http://192.168.1.104:5000/user/balance");
+      if (response.data.success) {
+        setUserBalance(response.data.balance);
+      } else {
+        Alert.alert("Error", "Failed to fetch balance.");
+      }
+    } catch (error) {
+      console.error("Balance fetch error:", error);
+      Alert.alert("Error", "Could not fetch balance.");
+    }
+  };
+
   const handleCoinSelect = async (amount) => {
     setSelectedAmount(amount);
     setCustomAmount(""); // Clear custom input
     await initiatePhonePePayment(amount);
   };
 
-  // Handle custom amount input
   const handleCustomAmountChange = (text) => {
     const numericValue = text.replace(/[^0-9]/g, "");
     setCustomAmount(numericValue);
     setSelectedAmount(parseInt(numericValue) || 0);
   };
 
-  // PhonePe Payment Flow
   const initiatePhonePePayment = async (amount) => {
     if (amount <= 0) {
       Alert.alert("Invalid Amount", "Please select or enter a valid amount.");
@@ -44,7 +59,6 @@ const CoinSelectionScreen = ({ navigation }) => {
     }
 
     try {
-      // Step 1: Initiate Payment Request
       const response = await axios.post("http://192.168.1.104:5000/payment/initiate", {
         amount,
       });
@@ -55,7 +69,6 @@ const CoinSelectionScreen = ({ navigation }) => {
         if (await Linking.canOpenURL(paymentUrl)) {
           await Linking.openURL(paymentUrl);
 
-          // Step 2: Check Payment Status after 5 seconds
           setTimeout(async () => {
             try {
               const statusResponse = await axios.get(
@@ -65,6 +78,7 @@ const CoinSelectionScreen = ({ navigation }) => {
               if (statusResponse.data.success && statusResponse.data.status === "SUCCESS") {
                 setUserBalance((prevBalance) => prevBalance - amount);
                 Alert.alert("Payment Successful", `₹${amount} has been deducted.`);
+                fetchUserBalance(); // Fetch the updated balance
                 setSelectedAmount(0);
                 setCustomAmount("");
               } else {
@@ -122,13 +136,21 @@ const CoinSelectionScreen = ({ navigation }) => {
         placeholder="Enter custom amount"
       />
 
-      {/* Buy Now Button (For Custom Amount) */}
+      {/* Buy Now Button */}
       <TouchableOpacity
         style={[styles.buyButton, selectedAmount > 0 ? {} : styles.disabledButton]}
         onPress={() => initiatePhonePePayment(selectedAmount)}
         disabled={selectedAmount <= 0}
       >
         <Text style={styles.buyButtonText}>Buy Now</Text>
+      </TouchableOpacity>
+
+      {/* ✅ Add Bank Account Button */}
+      <TouchableOpacity
+        style={styles.bankButton}
+        onPress={() => navigation.navigate("BankAccounts")}
+      >
+        <Text style={styles.bankButtonText}>Add Bank Account</Text>
       </TouchableOpacity>
     </View>
   );
@@ -215,6 +237,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#ccc",
   },
   buyButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  bankButton: {
+    width: "100%",
+    paddingVertical: 15,
+    backgroundColor: "#ff9800",
+    alignItems: "center",
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  bankButtonText: {
     color: "white",
     fontSize: 18,
     fontWeight: "bold",

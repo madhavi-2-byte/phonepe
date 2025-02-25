@@ -1,36 +1,24 @@
-// App.js
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
-// Import your screens
-import HomeScreen from './screens/HomeScreen';
-import PaymentScreen from './screens/PaymentSuccessScreen';
+// Correct the import paths based on where your files are located in the project structure
+import BankAccounts from './screens/BankAccountScreen'; // Ensure the path is correct
+import BankAccountList from './screens/BankAccountList'; // Ensure the path is correct
+import HomeScreen from './screens/HomeScreen'; // Ensure the path is correct
 
 const Stack = createStackNavigator();
 
-export default function App() {
+function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName="Home"
-        screenOptions={{
-          headerStyle: { backgroundColor: '#1e90ff' },
-          headerTintColor: '#fff',
-          headerTitleStyle: { fontWeight: 'bold' },
-        }}
-      >
-        <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ title: 'PhonePe Clone' }}
-        />
-        <Stack.Screen
-          name="Payment"
-          component={PaymentScreen}
-          options={{ title: 'Payment' }}
-        />
+      <Stack.Navigator initialRouteName="BankAccounts">
+        <Stack.Screen name="BankAccounts" component={BankAccounts} />
+        <Stack.Screen name="BankAccountsList" component={BankAccountList} />
+        <Stack.Screen name="HomeScreen" component={HomeScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
+
+export default App;
