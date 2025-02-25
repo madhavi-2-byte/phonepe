@@ -16,24 +16,35 @@ const CoinSelectionScreen = ({ navigation }) => {
   const [customAmount, setCustomAmount] = useState("");
 
   const coinOptions = [50, 100, 500, 1000, 2000, 5000];
-
-  useEffect(() => {
-    fetchUserBalance();
-  }, []);
-
-  const fetchUserBalance = async () => {
+  const getUserId = async () => {
     try {
-      const response = await axios.get("http://192.168.1.104:5000/user/balance");
-      if (response.data.success) {
-        setUserBalance(response.data.balance);
+      const userId = await AsyncStorage.getItem('userId');
+      if (userId) {
+        return userId;
       } else {
-        Alert.alert("Error", "Failed to fetch balance.");
+        console.error('User ID not found in AsyncStorage');
+        return null;
       }
     } catch (error) {
-      console.error("Balance fetch error:", error);
-      Alert.alert("Error", "Could not fetch balance.");
+      console.error('Error fetching user ID:', error);
+      return null;
     }
   };
+  
+  // Example usage:
+  const fetchBalance = async () => {
+    const userId = await getUserId();
+    if (!userId) return;
+  
+    try {
+      const response = await fetch(`http://192.168.1.104:5000/bank/balance`);
+      const data = await response.json();
+      console.log('User balance:', data.balance);
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+    }
+  };
+  
 
   const handleCoinSelect = async (amount) => {
     setSelectedAmount(amount);

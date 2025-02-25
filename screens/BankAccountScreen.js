@@ -16,32 +16,26 @@ const BankAccounts = ({ navigation }) => {
   };
 
   const handleSubmit = async () => {
-    // Check if all fields are filled
+    console.log("Form Data:", formData); // Debugging line
+  
     if (!formData.accountHolder || !formData.accountNumber || !formData.ifscCode) {
       Alert.alert("Error", "Please fill all the fields.");
       return;
     }
-
+  
     try {
       setLoading(true);
-
+  
       const response = await axios.post(
-        "http://192.168.1.104:5000/bank/add", // Make sure this is the correct backend URL
-        formData // Send the form data directly
+        "http://192.168.1.104:5000/bank/add",
+        formData
       );
-
+  
       if (response.data.success) {
-        // Show success message
         Alert.alert("Success", response.data.message);
-
-        // Show the updated balance
         const updatedBalance = response.data.updatedBalance;
         Alert.alert("Your updated balance is", `₹${updatedBalance}`);
-
-        // Store in AsyncStorage that the bank account has been added
         await AsyncStorage.setItem("hasBankAccount", "true");
-
-        // Navigate to the HomeScreen or other appropriate screen
         navigation.replace("HomeScreen");
       } else {
         Alert.alert("Error", response.data.message);
@@ -52,20 +46,28 @@ const BankAccounts = ({ navigation }) => {
       setLoading(false);
     }
   };
-
+  
   const fetchBalance = async () => {
     try {
-      const response = await axios.get("http://192.168.1.104:5000/balance");
+      const userId = await AsyncStorage.getItem("userId"); // Retrieve user ID
+      if (!userId) {
+        Alert.alert("Error", "User ID not found.");
+        return;
+      }
+  
+      const response = await axios.get(`http://192.168.1.104:5000/bank/balance`);
+      
       if (response.data.success) {
-        // Show balance
-        const balance = response.data.balance;
-        Alert.alert("Your balance is", `₹${balance}`);
+        Alert.alert("Your balance is", `₹${response.data.balance}`);
+      } else {
+        Alert.alert("Error", "Failed to fetch balance.");
       }
     } catch (error) {
       console.error("❌ Balance fetch error:", error);
-      Alert.alert("Error", "Failed to fetch balance");
+      Alert.alert("Error", "Failed to fetch balance.");
     }
   };
+  
 
   return (
     <View style={styles.container}>
@@ -113,12 +115,7 @@ const BankAccounts = ({ navigation }) => {
           </TouchableOpacity>
 
           {/* Fetch Balance Button */}
-          <TouchableOpacity
-            style={styles.fetchBalanceButton}
-            onPress={fetchBalance}
-          >
-            <Text style={styles.fetchBalanceButtonText}>Fetch Balance</Text>
-          </TouchableOpacity>
+          
         </View>
       </View>
     </View>
