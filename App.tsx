@@ -1,24 +1,36 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import React from "react";
+import { Provider } from "react-redux";
+import store from "./redux/store"; // Import Redux store
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
 
-// Correct the import paths based on where your files are located in the project structure
-import BankAccounts from './screens/BankAccountScreen'; // Ensure the path is correct
-import BankAccountList from './screens/BankAccountList'; // Ensure the path is correct
-import HomeScreen from './screens/HomeScreen'; // Ensure the path is correct
+// Import Screens
+import OtpRequestScreen from "./screens/OtpRequestScreen";
+import VerifyOTP from "./screens/VerifyOtp";
+import CreatePasswordScreen from "./screens/PasswordScreen";
+import LoginScreen from "./screens/LoginScreen";
+import HomeScreen from "./screens/HomeScreen";
+import BankAccounts from "./screens/BankAccountScreen";
+import BankAccountList from "./screens/BankAccountList";
 
 const Stack = createStackNavigator();
 
-function App() {
+const App = () => {
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="BankAccounts">
-        <Stack.Screen name="BankAccounts" component={BankAccounts} />
-        <Stack.Screen name="BankAccountsList" component={BankAccountList} />
-        <Stack.Screen name="HomeScreen" component={HomeScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <Provider store={store}>  
+      <NavigationContainer>
+      <Stack.Navigator initialRouteName="OtpRequest">
+        <Stack.Screen name="OtpRequest" component={OtpRequestScreen} />
+        <Stack.Screen name="VerifyOTP" component={VerifyOTP} />
+          <Stack.Screen name="CreatePasswordScreen" component={CreatePasswordScreen} />
+          <Stack.Screen name="LoginScreen" component={LoginScreen} />
+          <Stack.Screen name="HomeScreen" component={HomeScreen} />
+          <Stack.Screen name="BankAccounts" component={BankAccounts} />
+          <Stack.Screen name="BankAccountsList" component={BankAccountList} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </Provider>
   );
-}
+};
 
 export default App;

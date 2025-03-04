@@ -11,7 +11,7 @@ const BankAccountsList = ({ navigation }) => {
   useEffect(() => {
     const fetchAccounts = async () => {
       try {
-        const response = await axios.get("http://192.168.1.104:5000/bank/accounts");
+        const response = await axios.get("http://192.168.1.112:5000/bank/accounts");
 
         if (response.data.success) {
           setAccounts(response.data.accounts);
@@ -41,7 +41,7 @@ const BankAccountsList = ({ navigation }) => {
           try {
             console.log(`Deleting account with ID: ${accountId}`); // Log the accountId
             const response = await axios.delete(
-              `http://192.168.1.104:5000/bank/delete/${accountId}` // Update the URL here
+              `http://192.168.1.112:5000/bank/delete/${accountId}` // Update the URL here
             );
   
             if (response.data.success) {

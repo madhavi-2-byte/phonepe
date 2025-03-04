@@ -27,7 +27,7 @@ const BankAccounts = ({ navigation }) => {
       setLoading(true);
   
       const response = await axios.post(
-        "http://192.168.1.104:5000/bank/add",
+        "http://192.168.1.112:5000/bank/add",
         formData
       );
   
@@ -55,7 +55,7 @@ const BankAccounts = ({ navigation }) => {
         return;
       }
   
-      const response = await axios.get(`http://192.168.1.104:5000/bank/balance`);
+      const response = await axios.get(`http://192.168.1.112:5000/bank/balance`);
       
       if (response.data.success) {
         Alert.alert("Your balance is", `₹${response.data.balance}`);

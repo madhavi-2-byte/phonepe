@@ -8,48 +8,56 @@ import {
   Alert,
   Linking,
 } from "react-native";
+import { useSelector, useDispatch } from "react-redux";
+import { setBalance } from "../redux/slices/walletSlice";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import io from "socket.io-client";
+
+const API_URL = "http://192.168.1.112:5000"; // Replace with your backend URL
 
 const CoinSelectionScreen = ({ navigation }) => {
-  const [userBalance, setUserBalance] = useState(0); // Initially 0
+  const dispatch = useDispatch();
+  const userBalance = useSelector((state) => state.wallet.balance);
   const [selectedAmount, setSelectedAmount] = useState(0);
   const [customAmount, setCustomAmount] = useState("");
 
-  const coinOptions = [50, 100, 500, 1000, 2000, 5000];
-  const getUserId = async () => {
+  useEffect(() => {
+    fetchBalanceFromServer();
+
+    // ✅ Connect to Socket.IO for real-time balance updates
+    const socket = io(API_URL);
+    socket.on("balanceUpdate", async (newBalance) => {
+      console.log("🔄 Balance Updated:", newBalance);
+      dispatch(setBalance(newBalance));
+      await AsyncStorage.setItem("userBalance", JSON.stringify(newBalance));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  // ✅ Fetch balance from the backend
+  const fetchBalanceFromServer = async () => {
     try {
-      const userId = await AsyncStorage.getItem('userId');
-      if (userId) {
-        return userId;
+      const response = await axios.get(`${API_URL}/user/balance`);
+      if (response.data.success && response.data.balance > 0) {
+        dispatch(setBalance(response.data.balance));
+        await AsyncStorage.setItem("userBalance", JSON.stringify(response.data.balance));
       } else {
-        console.error('User ID not found in AsyncStorage');
-        return null;
+        dispatch(setBalance(0)); // Default balance to 0
       }
     } catch (error) {
-      console.error('Error fetching user ID:', error);
-      return null;
+      console.error("Error fetching balance:", error);
+      dispatch(setBalance(0)); // Set balance to 0 in case of error
     }
   };
-  
-  // Example usage:
-  const fetchBalance = async () => {
-    const userId = await getUserId();
-    if (!userId) return;
-  
-    try {
-      const response = await fetch(`http://192.168.1.104:5000/bank/balance`);
-      const data = await response.json();
-      console.log('User balance:', data.balance);
-    } catch (error) {
-      console.error('Error fetching balance:', error);
-    }
-  };
-  
 
+  // ✅ Handle Coin Selection
   const handleCoinSelect = async (amount) => {
     setSelectedAmount(amount);
-    setCustomAmount(""); // Clear custom input
-    await initiatePhonePePayment(amount);
+    setCustomAmount("");
   };
 
   const handleCustomAmountChange = (text) => {
@@ -58,48 +66,34 @@ const CoinSelectionScreen = ({ navigation }) => {
     setSelectedAmount(parseInt(numericValue) || 0);
   };
 
-  const initiatePhonePePayment = async (amount) => {
-    if (amount <= 0) {
+  // ✅ Navigate to Bank Account Screen
+  const navigateToBankAccount = () => {
+    navigation.navigate("BankAccounts"); // Ensure "BankAccounts" is registered in App.js
+  };
+
+  // ✅ Initiate PhonePe Payment
+  const initiatePhonePePayment = async () => {
+    if (userBalance <= 0) {
+      Alert.alert("Insufficient Balance", "You do not have enough balance to make a payment.");
+      return;
+    }
+  
+    if (selectedAmount <= 0) {
       Alert.alert("Invalid Amount", "Please select or enter a valid amount.");
       return;
     }
-
-    if (amount > userBalance) {
-      Alert.alert("Insufficient Balance", "Please enter an amount within your balance.");
-      return;
-    }
-
+  
     try {
-      const response = await axios.post("http://192.168.1.104:5000/payment/initiate", {
-        amount,
-      });
-
+      const response = await axios.post(`${API_URL}/payment/initiate`, { amount: selectedAmount });
+  
       if (response.data.success) {
         const { paymentUrl, transactionId } = response.data;
-
+  
         if (await Linking.canOpenURL(paymentUrl)) {
           await Linking.openURL(paymentUrl);
-
-          setTimeout(async () => {
-            try {
-              const statusResponse = await axios.get(
-                `http://192.168.1.104:5000/payment/status/${transactionId}`
-              );
-
-              if (statusResponse.data.success && statusResponse.data.status === "SUCCESS") {
-                setUserBalance((prevBalance) => prevBalance - amount);
-                Alert.alert("Payment Successful", `₹${amount} has been deducted.`);
-                fetchUserBalance(); // Fetch the updated balance
-                setSelectedAmount(0);
-                setCustomAmount("");
-              } else {
-                Alert.alert("Payment Failed", "Transaction was not successful.");
-              }
-            } catch (statusError) {
-              console.error("Payment status error:", statusError);
-              Alert.alert("Error", "Failed to verify payment status.");
-            }
-          }, 5000);
+  
+          // ✅ Check payment status after 5 seconds
+          setTimeout(() => checkPaymentStatus(transactionId), 5000);
         } else {
           Alert.alert("Error", "No UPI app found on your device.");
         }
@@ -111,26 +105,43 @@ const CoinSelectionScreen = ({ navigation }) => {
       Alert.alert("Error", "Something went wrong. Please try again.");
     }
   };
+  
+
+  // ✅ Check Payment Status
+  const checkPaymentStatus = async (transactionId) => {
+    try {
+      const response = await axios.post(`${API_URL}/payment/status`, { transactionId });
+
+      if (response.data.success) {
+        Alert.alert("Success", "Payment successful. Balance updated.");
+        fetchBalanceFromServer(); // ✅ Update balance only if payment is successful
+      } else if (response.data.message === "Payment is still pending. Please check again later.") {
+        Alert.alert("Pending", "Your payment is still processing. Please check again later.");
+      } else {
+        Alert.alert("Error", "Payment failed or cancelled.");
+      }
+    } catch (error) {
+      console.error("Error checking payment status:", error);
+      Alert.alert("Error", "Failed to check payment status.");
+    }
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Add Money</Text>
 
-      {/* Balance Card */}
-      <View style={styles.balanceContainer}>
-        <Text style={styles.balanceText}>Available Balance</Text>
-        <Text style={styles.balanceAmount}>₹{userBalance}</Text>
-      </View>
+      {userBalance > 0 && ( // ✅ Show balance only when greater than 0
+        <View style={styles.balanceContainer}>
+          <Text style={styles.balanceText}>Available Balance</Text>
+          <Text style={styles.balanceAmount}>₹{userBalance}</Text>
+        </View>
+      )}
 
-      {/* Coin Selection */}
       <View style={styles.coinGrid}>
-        {coinOptions.map((amount) => (
+        {[50, 100, 500, 1000, 2000, 5000].map((amount) => (
           <TouchableOpacity
             key={amount}
-            style={[
-              styles.coinButton,
-              selectedAmount === amount ? styles.selectedCoin : {},
-            ]}
+            style={[styles.coinButton, selectedAmount === amount ? styles.selectedCoin : {}]}
             onPress={() => handleCoinSelect(amount)}
           >
             <Text style={styles.coinText}>₹{amount}</Text>
@@ -138,35 +149,35 @@ const CoinSelectionScreen = ({ navigation }) => {
         ))}
       </View>
 
-      {/* Custom Amount Input */}
+      {/* ✅ "Enter Custom Amount" Text */}
+      <Text style={styles.customAmountText}>Enter Custom Amount</Text>
+
       <TextInput
         style={styles.input}
         value={customAmount}
         onChangeText={handleCustomAmountChange}
         keyboardType="numeric"
-        placeholder="Enter custom amount"
+        placeholder="Enter amount"
       />
 
-      {/* Buy Now Button */}
+      {/* ✅ Buy Now Button */}
       <TouchableOpacity
         style={[styles.buyButton, selectedAmount > 0 ? {} : styles.disabledButton]}
-        onPress={() => initiatePhonePePayment(selectedAmount)}
+        onPress={initiatePhonePePayment}
         disabled={selectedAmount <= 0}
       >
         <Text style={styles.buyButtonText}>Buy Now</Text>
       </TouchableOpacity>
 
       {/* ✅ Add Bank Account Button */}
-      <TouchableOpacity
-        style={styles.bankButton}
-        onPress={() => navigation.navigate("BankAccounts")}
-      >
+      <TouchableOpacity style={styles.bankButton} onPress={navigateToBankAccount}>
         <Text style={styles.bankButtonText}>Add Bank Account</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
+// ✅ Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -220,21 +231,18 @@ const styles = StyleSheet.create({
   selectedCoin: {
     backgroundColor: "#2D9CDB",
   },
-  coinText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
+  customAmountText: {
+    fontSize: 16,
+    marginTop: 15,
+    color: "#555",
   },
   input: {
     width: "100%",
-    borderWidth: 1,
-    borderColor: "#ccc",
     padding: 10,
-    marginTop: 15,
-    borderRadius: 8,
-    fontSize: 16,
-    textAlign: "center",
-    backgroundColor: "#fff",
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 10,
+    marginVertical: 10,
   },
   buyButton: {
     width: "100%",
@@ -242,15 +250,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#2D9CDB",
     alignItems: "center",
     borderRadius: 10,
-    marginTop: 20,
-  },
-  disabledButton: {
-    backgroundColor: "#ccc",
-  },
-  buyButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
+    marginTop: 10,
   },
   bankButton: {
     width: "100%",
@@ -259,11 +259,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 10,
     marginTop: 10,
-  },
-  bankButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
   },
 });
 
