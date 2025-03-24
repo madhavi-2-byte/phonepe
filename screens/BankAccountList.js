@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from "react-native";
+import { 
+  View, 
+  Text, 
+  FlatList, 
+  TouchableOpacity, 
+  Alert, 
+  StyleSheet, 
+  ActivityIndicator 
+} from "react-native";
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const BankAccountsList = ({ navigation }) => {
   const [accounts, setAccounts] = useState([]);
@@ -11,42 +18,44 @@ const BankAccountsList = ({ navigation }) => {
   useEffect(() => {
     const fetchAccounts = async () => {
       try {
-        const response = await axios.get("http://192.168.1.112:5000/bank/accounts");
-
+        console.log("🔹 Fetching from:", "http://192.168.1.116:5000/bank/accounts");
+        const response = await axios.get("http://192.168.1.116:5000/bank/accounts");
+  
+        console.log("✅ Response:", response.data);
         if (response.data.success) {
           setAccounts(response.data.accounts);
         } else {
-          Alert.alert("Error", "Failed to fetch accounts.");
+          Alert.alert("Error", response.data.message || "Failed to fetch accounts.");
         }
       } catch (error) {
-        console.error("Error fetching accounts:", error);
-        Alert.alert("Error", "Could not fetch accounts. Try again later.");
+        console.error("❌ Fetch Error:", error);
+        Alert.alert("Error", error.response?.data?.message || "Could not fetch accounts.");
       } finally {
         setLoading(false);
       }
     };
-
+  
     fetchAccounts();
-  }, [navigation]);
-
+  }, []);
   // Handle delete account
   const handleDelete = async (accountId) => {
     Alert.alert("Confirm Deletion", "Are you sure you want to delete this account?", [
       {
         text: "Cancel",
+        style: "cancel",
       },
       {
         text: "Delete",
         onPress: async () => {
           try {
-            console.log(`Deleting account with ID: ${accountId}`); // Log the accountId
+            console.log(`Deleting account with ID: ${accountId}`); 
             const response = await axios.delete(
-              `http://192.168.1.112:5000/bank/delete/${accountId}` // Update the URL here
+              `http://192.168.1.116:5000/bank/delete/${accountId}`
             );
-  
+
             if (response.data.success) {
               Alert.alert("Success", response.data.message);
-              setAccounts(accounts.filter((account) => account._id !== accountId)); // Remove the deleted account from the list
+              setAccounts(accounts.filter((account) => account._id !== accountId));
             } else {
               Alert.alert("Error", "Failed to delete the account.");
             }
@@ -58,16 +67,15 @@ const BankAccountsList = ({ navigation }) => {
       },
     ]);
   };
-  
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Your Bank Accounts</Text>
 
-      {/* Add New Bank Account Button */}
-      
-
       {loading ? (
         <ActivityIndicator size="large" color="#007bff" />
+      ) : accounts.length === 0 ? (
+        <Text style={styles.noAccountText}>No bank accounts found.</Text>
       ) : (
         <FlatList
           data={accounts}
@@ -78,12 +86,15 @@ const BankAccountsList = ({ navigation }) => {
               <Text style={styles.accountInfo}>Account Number: {item.accountNumber}</Text>
               <Text style={styles.accountInfo}>IFSC Code: {item.ifscCode}</Text>
 
-              {/* Navigate to account details */}
+              {/* Select Bank and Navigate to HomeScreen */}
               <TouchableOpacity
-                
-                onPress={() => navigation.navigate("BankAccountDetails", { accountId: item._id })}
+                style={styles.viewButton}
+                onPress={() => {
+                  console.log("Navigating with Bank ID:", item._id);
+                  navigation.navigate("HomeScreen", { selectedBankId: item._id });
+                }}
               >
-               
+                <Text style={styles.viewButtonText}>Select</Text>
               </TouchableOpacity>
 
               {/* Delete Account */}
@@ -106,6 +117,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f4f4f4",
     paddingHorizontal: 20,
+    paddingTop: 10,
   },
   title: {
     fontSize: 22,
@@ -114,17 +126,11 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     color: "#333",
   },
-  addButton: {
-    backgroundColor: "#28a745",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+  noAccountText: {
+    fontSize: 18,
+    textAlign: "center",
+    color: "#777",
+    marginTop: 20,
   },
   accountCard: {
     backgroundColor: "#fff",
@@ -144,10 +150,11 @@ const styles = StyleSheet.create({
   },
   viewButton: {
     backgroundColor: "#007bff",
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
     alignItems: "center",
     marginTop: 10,
+    marginBottom: 5,
   },
   viewButtonText: {
     color: "#fff",
@@ -156,10 +163,10 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: "#ff4d4d",
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 5,
   },
   deleteButtonText: {
     color: "#fff",

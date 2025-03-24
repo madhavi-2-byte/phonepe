@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from "reac
 import axios from "axios";
 import { MaterialIcons } from "@expo/vector-icons"; // ✅ Import Icons
 
-const API_URL = "http://192.168.1.112:5000"; // Change to your backend URL
+const API_URL = "http://192.168.1.116:5000"; // Change to your backend URL
 
 const LoginScreen = ({ navigation }) => {
   const [phone, setPhone] = useState("");
@@ -15,21 +15,32 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert("Error", "All fields are required.");
       return;
     }
-
+  
     try {
-      const response = await axios.post(`${API_URL}/login`, { phone, password });
-
-      if (response.data.success) {
-        Alert.alert("Success", "Login successful!");
-        navigation.navigate("HomeScreen"); // ✅ Navigate to Home
-      } else {
+      console.log("📡 Sending login request to:", `${API_URL}/user/login`);
+  
+      const response = await axios.post(`${API_URL}/user/login`, {
+        phone,
+        password,
+      });
+  
+      console.log("✅ Raw Response:", response);
+  
+      if (!response.data.success) {
+        console.error("❌ API Error Response:", response.data);
         Alert.alert("Error", response.data.message);
+        return;
       }
+  
+      console.log("✅ Login Successful:", response.data);
+      Alert.alert("Success", "Login successful!");
+      navigation.navigate("HomeScreen"); // ✅ Navigate to Home
     } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Something went wrong. Try again.");
+      console.error("❌ Network/API Error:", error.response?.data || error.message);
+      Alert.alert("Error", "Something went wrong. Check network & backend.");
     }
   };
+  
 
   return (
     <View style={styles.container}>

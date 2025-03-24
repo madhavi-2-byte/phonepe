@@ -10,16 +10,28 @@ const OtpRequestScreen = ({ navigation }) => {
       Alert.alert("Error", "Please enter a valid phone number.");
       return;
     }
-
+  
     try {
-      const response = await fetch("http://192.168.1.112:5000/send-otp", {
+      console.log("📡 Sending OTP request to:", `http://192.168.1.116:5000/auth/send-otp`);
+  
+      const response = await fetch("http://192.168.1.116:5000/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber }),
       });
-
+  
+      console.log("✅ Raw Response:", response);
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ API Error Response:", errorText);
+        Alert.alert("Error", `Server Error: ${response.status}`);
+        return;
+      }
+  
       const data = await response.json();
-
+      console.log("✅ Parsed Response:", data);
+  
       if (data.success) {
         Alert.alert("Success", "OTP Sent!");
         navigation.navigate("VerifyOTP", { phoneNumber });
@@ -27,10 +39,11 @@ const OtpRequestScreen = ({ navigation }) => {
         Alert.alert("Error", data.message);
       }
     } catch (error) {
-      Alert.alert("Error", "Something went wrong.");
+      console.error("❌ Network Error:", error);
+      Alert.alert("Error", "Could not connect to server. Check network & backend.");
     }
   };
-
+  
   return (
     <View style={styles.container}>
       {/* ✅ Call Icon at the Top */}
