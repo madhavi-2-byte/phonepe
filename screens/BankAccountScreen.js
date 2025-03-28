@@ -20,17 +20,15 @@ const BankAccountScreen = ({ navigation }) => {
     }
   
     try {
-      const response = await fetch("http://192.168.1.116:5000/bank/add", {
+      const response = await fetch("http://192.168.1.102:5000/bank/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ accountHolder, accountNumber, ifscCode }),
       });
   
-      // Log the full response text
       const responseText = await response.text();
       console.log("Server Response:", responseText);
   
-      // Try to parse the response
       const data = JSON.parse(responseText);
   
       if (data.success && data.account) {
@@ -71,7 +69,6 @@ const BankAccountScreen = ({ navigation }) => {
         <Text style={styles.addButtonText}>Save & Continue</Text>
       </TouchableOpacity>
 
-      {/* ✅ See All Accounts Button */}
       <TouchableOpacity 
         style={styles.seeAccountsButton} 
         onPress={() => navigation.navigate("BankAccountsList")}
@@ -82,15 +79,55 @@ const BankAccountScreen = ({ navigation }) => {
   );
 };
 
-// ✅ Updated Styles
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, alignItems: "center", justifyContent: "center", backgroundColor: "#f8f9fd" },
-  title: { fontSize: 22, fontWeight: "bold", color: "#333", marginBottom: 15 },
-  input: { width: "100%", padding: 10, borderColor: "#ccc", borderWidth: 1, borderRadius: 10, marginBottom: 10 },
-  addButton: { width: "100%", paddingVertical: 15, backgroundColor: "#2D9CDB", alignItems: "center", borderRadius: 10 },
-  addButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
-  seeAccountsButton: { width: "100%", paddingVertical: 15, backgroundColor: "#ff9800", alignItems: "center", borderRadius: 10, marginTop: 10 },
-  seeAccountsButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  container: {
+    flex: 1,
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F3F5FC",
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#6739B7",
+    marginBottom: 15,
+  },
+  input: {
+    width: "100%",
+    padding: 15,
+    borderColor: "#D1C4E9",
+    borderWidth: 1,
+    borderRadius: 12,
+    marginBottom: 10,
+    backgroundColor: "#fff",
+    textAlign: "center",
+  },
+  addButton: {
+    width: "100%",
+    paddingVertical: 15,
+    backgroundColor: "#6739B7",
+    alignItems: "center",
+    borderRadius: 25,
+  },
+  addButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  seeAccountsButton: {
+    width: "100%",
+    paddingVertical: 15,
+    backgroundColor: "#6739B7",
+    alignItems: "center",
+    borderRadius: 25,
+    marginTop: 10,
+  },
+  seeAccountsButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
 });
 
 export default BankAccountScreen;

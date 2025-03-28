@@ -1,39 +1,59 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Modal } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons"; // ✅ Import Icons
+import { MaterialIcons } from "@expo/vector-icons"; 
 
 const VerifyOtpScreen = ({ route, navigation }) => {
   const { phoneNumber } = route.params;
-  const [otp, setOtp] = useState("");
-  const [showPopup, setShowPopup] = useState(true); // ✅ SMS Sent Popup State
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [showPopup, setShowPopup] = useState(true); 
+  const inputRefs = useRef([]);
+
+  const handleChangeText = (text, index) => {
+    if (text.length > 1) return;
+
+    let newOtp = [...otp];
+    newOtp[index] = text;
+    setOtp(newOtp);
+
+    if (text && index < 5) {
+      inputRefs.current[index + 1].focus();
+    }
+  };
+
+  const handleKeyPress = (e, index) => {
+    if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
+      inputRefs.current[index - 1].focus();
+    }
+  };
 
   const verifyOTP = async () => {
-    if (!otp || otp.length !== 6) {
+    const enteredOtp = otp.join("");
+    if (enteredOtp.length !== 6) {
       Alert.alert("Error", "Please enter a valid OTP.");
       return;
     }
-  
+
     try {
-      console.log("📡 Sending OTP verification request to:", `http://192.168.1.116:5000/auth/verify-otp`);
-  
-      const response = await fetch("http://192.168.1.116:5000/auth/verify-otp", {
+      console.log("📡 Sending OTP verification request to:", `http://192.168.1.102:5000/auth/verify-otp`);
+
+      const response = await fetch("http://192.168.1.102:5000/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber, otp }),
+        body: JSON.stringify({ phoneNumber, otp: enteredOtp }),
       });
-  
+
       console.log("✅ Raw Response:", response);
-  
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("❌ API Error Response:", errorText);
         Alert.alert("Error", `Server Error: ${response.status}`);
         return;
       }
-  
+
       const data = await response.json();
       console.log("✅ Parsed Response:", data);
-  
+
       if (data.success) {
         Alert.alert("Success", "OTP Verified!");
         navigation.navigate("CreatePasswordScreen");
@@ -45,14 +65,13 @@ const VerifyOtpScreen = ({ route, navigation }) => {
       Alert.alert("Error", "Could not connect to server. Check network & backend.");
     }
   };
-  
+
   return (
     <View style={styles.container}>
-      {/* ✅ OTP Sent Popup */}
       <Modal visible={showPopup} transparent animationType="slide">
         <View style={styles.popupContainer}>
           <View style={styles.popup}>
-            <MaterialIcons name="sms" size={50} color="#2D9CDB" />
+            <MaterialIcons name="sms" size={50} color="#7B1FA2" />
             <Text style={styles.popupText}>OTP has been sent to {phoneNumber}</Text>
             <TouchableOpacity style={styles.popupButton} onPress={() => setShowPopup(false)}>
               <Text style={styles.popupButtonText}>OK</Text>
@@ -61,30 +80,32 @@ const VerifyOtpScreen = ({ route, navigation }) => {
         </View>
       </Modal>
 
-      {/* ✅ Lock Icon at the Top */}
-      <View style={styles.iconContainer}>
-        <MaterialIcons name="lock" size={80} color="#2D9CDB" />
+      <View style={styles.card}>
+        <View style={styles.iconContainer}>
+          <MaterialIcons name="lock" size={60} color="#7B1FA2" />
+        </View>
+
+        <Text style={styles.title}>Enter OTP</Text>
+
+        <View style={styles.otpContainer}>
+          {otp.map((digit, index) => (
+            <TextInput
+              key={index}
+              ref={(ref) => (inputRefs.current[index] = ref)}
+              style={styles.otpBox}
+              keyboardType="numeric"
+              maxLength={1}
+              value={digit}
+              onChangeText={(text) => handleChangeText(text, index)}
+              onKeyPress={(e) => handleKeyPress(e, index)}
+            />
+          ))}
+        </View>
+
+        <TouchableOpacity style={styles.button} onPress={verifyOTP}>
+          <Text style={styles.buttonText}>Verify OTP</Text>
+        </TouchableOpacity>
       </View>
-
-      <Text style={styles.title}>Enter OTP</Text>
-
-      {/* ✅ OTP Input Box */}
-      <View style={styles.inputContainer}>
-        <MaterialIcons name="message" size={24} color="#2D9CDB" />
-        <TextInput
-          style={styles.input}
-          placeholder="Enter OTP"
-          keyboardType="numeric"
-          maxLength={6}
-          value={otp}
-          onChangeText={setOtp}
-        />
-      </View>
-
-      {/* ✅ Verify Button */}
-      <TouchableOpacity style={styles.button} onPress={verifyOTP}>
-        <Text style={styles.buttonText}>Verify OTP</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -94,56 +115,59 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff", // ✅ White Background
+    backgroundColor: "#F3E5F5",
     padding: 20,
+  },
+  card: {
+    width: "90%",
+    maxWidth: 380,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 25,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
   },
   iconContainer: {
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#E1BEE7",
     borderRadius: 50,
-    padding: 20,
-    marginBottom: 20,
+    padding: 15,
+    marginBottom: 15,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
     marginBottom: 20,
-    color: "#333",
+    color: "#4A148C",
+    textAlign: "center",
   },
-  inputContainer: {
+  otpContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    width: "100%",
-    maxWidth: 350,
-    borderWidth: 1,
-    borderColor: "#2D9CDB",
-    marginBottom: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    justifyContent: "space-between",
+    width: "80%",
+    marginBottom: 20,
   },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    marginLeft: 10,
+  otpBox: {
+    width: 40,
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#7B1FA2",
+    borderRadius: 10,
+    textAlign: "center",
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#7B1FA2",
+    backgroundColor: "#E1BEE7",
   },
   button: {
-    backgroundColor: "#2D9CDB", // ✅ Blue Button
+    backgroundColor: "#7B1FA2",
     paddingVertical: 14,
     borderRadius: 10,
-    width: "100%",
-    maxWidth: 350,
+    width: "80%",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
   },
   buttonText: {
     color: "#fff",
@@ -157,20 +181,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   popup: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     padding: 20,
     borderRadius: 10,
     alignItems: "center",
     width: "80%",
   },
-  popupText: {
-    fontSize: 16,
-    marginVertical: 10,
-    textAlign: "center",
-  },
   popupButton: {
     marginTop: 10,
-    backgroundColor: "#2D9CDB", // ✅ Blue Popup Button
+    backgroundColor: "#7B1FA2",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,

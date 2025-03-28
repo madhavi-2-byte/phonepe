@@ -1,14 +1,22 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+} from "react-native";
 import { useDispatch } from "react-redux";
 import { setBalance } from "../redux/slices/walletSlice";
 import axios from "axios";
+import { MaterialIcons } from "@expo/vector-icons"; // ✅ Import Icons
 
-const API_URL = "http://192.168.1.116:5000/api/wallet/add"; // ✅ Update with your backend URL
+const API_URL = "http://192.168.1.102:5000/api/wallet/add";
 
 const AddMoneyScreen = ({ navigation }) => {
   const [amount, setAmount] = useState("");
-  const [accountNumber, setAccountNumber] = useState(""); // ✅ Add bank account input
+  const [accountNumber, setAccountNumber] = useState("");
   const dispatch = useDispatch();
 
   const addMoney = async () => {
@@ -20,13 +28,13 @@ const AddMoneyScreen = ({ navigation }) => {
     try {
       const response = await axios.post(API_URL, {
         amount: parseFloat(amount),
-        accountNumber, // ✅ Send bank account number
+        accountNumber,
       });
 
       if (response.data.success) {
         dispatch(setBalance(response.data.balance));
         Alert.alert("✅ Success", "Money added successfully.");
-        navigation.goBack(); // ✅ Navigate back to the Wallet screen
+        navigation.goBack();
       } else {
         Alert.alert("❌ Error", response.data.message);
       }
@@ -38,7 +46,10 @@ const AddMoneyScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Add Money to Bank</Text>
+      <View style={styles.iconContainer}>
+        <MaterialIcons name="account-balance-wallet" size={80} color="#6739B7" />
+      </View>
+      <Text style={styles.title}>Add Money</Text>
 
       <TextInput
         style={styles.input}
@@ -57,32 +68,62 @@ const AddMoneyScreen = ({ navigation }) => {
       />
 
       <TouchableOpacity style={styles.button} onPress={addMoney}>
-        <Text style={styles.buttonText}>Add Money</Text>
+        <Text style={styles.buttonText}>Proceed</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: "center", padding: 20 },
-  title: { fontSize: 22, fontWeight: "bold", marginBottom: 20 },
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "#F3F5FC",
+  },
+  iconContainer: {
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+    color: "#6739B7",
+  },
   input: {
     width: "90%",
     padding: 15,
-    borderColor: "#ddd",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderColor: "#D1C4E9",
     borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 15,
+    fontSize: 16,
     textAlign: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   button: {
-    backgroundColor: "#2D9CDB",
+    backgroundColor: "#6739B7",
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 25,
     alignItems: "center",
     width: "90%",
+    shadowColor: "#6739B7",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  buttonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
 });
 
 export default AddMoneyScreen;

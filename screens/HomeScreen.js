@@ -15,8 +15,10 @@ import { setBalance } from "../redux/slices/walletSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import io from "socket.io-client";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialIcons, Ionicons, FontAwesome5 } from "@expo/vector-icons";
 
-const API_URL = "http://192.168.1.116:5000"; // Replace with your backend URL
+const API_URL = "http://192.168.1.102:5000"; // Replace with your backend URL
 
 const HomeScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -85,85 +87,47 @@ const HomeScreen = ({ navigation }) => {
     setModalVisible(true);
   };
 
-  const processPayment = async () => {
-    if (paymentMethod === "UPI" && !upiId.trim()) {
-      Alert.alert("Error", "Please enter a valid UPI ID.");
-      return;
-    }
-
-    if (paymentMethod === "BANK" && (!bankAccount.accountNumber.trim() || !bankAccount.ifsc.trim())) {
-      Alert.alert("Error", "Please enter both Account Number and IFSC Code.");
-      return;
-    }
-
-    setModalVisible(false);
-
-    try {
-      const payload = {
-        amount: selectedAmount,
-        paymentMethod,
-        ...(paymentMethod === "UPI" ? { upiId } : { bankAccount }),
-      };
-
-      console.log("📡 Sending Payment Request:", payload);
-
-      const response = await axios.post(`${API_URL}/api/initiate-payment`, payload);
-
-      console.log("✅ Payment Response:", response.data);
-
-      if (!response.data.success) {
-        throw new Error(response.data.message || "Payment initiation failed.");
-      }
-
-      if (response.data.paymentUrl) {
-        console.log("🔗 Redirecting to:", response.data.paymentUrl);
-        const supported = await Linking.canOpenURL(response.data.paymentUrl);
-        if (supported) {
-          Linking.openURL(response.data.paymentUrl);
-        } else {
-          Alert.alert("Error", "Cannot open PhonePe link.");
-        }
-      } else {
-        Alert.alert("Success", "Bank transfer initiated successfully.");
-      }
-    } catch (err) {
-      console.error(`🔴 Error initiating ${paymentMethod} payment:`, err);
-      Alert.alert("Error", `Payment failed: ${err.message}`);
-    }
-  };
-
-  
-  
-  
   return (
     <View style={styles.container}>
-      {/* Wallet Balance */}
-      <View style={styles.balanceContainer}>
+      {/* ✅ Gradient Header */}
+     
+
+      {/* ✅ Balance Card */}
+      <View style={styles.balanceCard}>
         <Text style={styles.balanceText}>Available Balance</Text>
-        {loading ? <ActivityIndicator size="large" color="#2D9CDB" /> : <Text style={styles.balanceAmount}>₹{userBalance}</Text>}
+        {loading ? <ActivityIndicator size="large" color="#7303c0" /> : <Text style={styles.balanceAmount}>₹{userBalance}</Text>}
       </View>
 
-      {/* Action Buttons */}
-      <View style={styles.buttonContainer}>
-      <TouchableOpacity style={styles.addMoneyButton} onPress={() => navigation.navigate("WalletScreen")}>
-    <Text style={styles.buttonText}>Wallet</Text>
-  </TouchableOpacity>
-  <TouchableOpacity style={styles.addMoneyButton} onPress={() => navigation.navigate("AddMoneyScreen")}>
-    <Text style={styles.buttonText}>Add Money</Text>
-  </TouchableOpacity>
-  <TouchableOpacity style={styles.addMoneyButton} onPress={() => navigation.navigate("DeductMoneyScreen")}>
-    <Text style={styles.buttonText}>Deduct Money</Text>
-  </TouchableOpacity>
+      {/* ✅ Navigation Buttons */}
+      <View style={styles.menuContainer}>
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate("AddMoneyScreen")}>
+          <Ionicons name="add-circle-outline" size={28} color="#fff" />
+          <Text style={styles.menuText}>Add Money</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate("BankAccounts")}>
+          <Ionicons name="add-circle-outline" size={28} color="#fff" />
+          <Text style={styles.menuText}>Bank Accounts</Text>
+        </TouchableOpacity>
 
-  <TouchableOpacity style={styles.historyButton} onPress={() => navigation.navigate("TransactionHistoryScreen")}>
-    <Text style={styles.buttonText}>Transaction History</Text>
-  </TouchableOpacity>
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate("WalletScreen")}>
+        <FontAwesome5 name="wallet" size={26} color="#fff" />
+          <Text style={styles.menuText}>Wallet</Text>
+        </TouchableOpacity>
 
-  <TouchableOpacity style={styles.bankButton} onPress={() => navigation.navigate("BankAccounts")}>
-    <Text style={styles.buttonText}>Add Bank Account</Text>
-  </TouchableOpacity>
-</View>
-      {/* Coin Selection */}
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate("DeductMoneyScreen")}>
+          <FontAwesome5 name="wallet" size={26} color="#fff" />
+          <Text style={styles.menuText}>Spend Money</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate("TransactionHistoryScreen")}>
+          <MaterialIcons name="history" size={28} color="#fff" />
+          <Text style={styles.menuText}>Transactions</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ✅ Coin Selection */}
+      <Text style={styles.sectionTitle}>Select Amount</Text>
       <View style={styles.coinGrid}>
         {[50, 100, 500, 1000, 2000, 5000].map((amount) => (
           <TouchableOpacity key={amount} style={[styles.coinButton, selectedAmount === amount && styles.selectedCoin]} onPress={() => handleCoinSelect(amount)}>
@@ -172,242 +136,44 @@ const HomeScreen = ({ navigation }) => {
         ))}
       </View>
 
-      {/* Custom Amount Input */}
+      {/* ✅ Custom Amount Input */}
       <TextInput style={styles.input} value={customAmount} onChangeText={handleCustomAmountChange} keyboardType="numeric" placeholder="Enter custom amount" />
 
-      {/* Buy Now Button */}
+      {/* ✅ Buy Now Button */}
       <TouchableOpacity style={styles.buyButton} onPress={initiatePayment}>
-        <Text style={styles.buyButtonText}>Buy Now</Text>
+        <Text style={styles.buyButtonText}>Proceed to Pay</Text>
       </TouchableOpacity>
-
-      {/* Payment Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>{paymentMethod === "UPI" ? "Enter UPI ID" : "Enter Bank Details"}</Text>
-            {paymentMethod === "UPI" ? (
-              <TextInput style={styles.modalInput} placeholder="Enter UPI ID" value={upiId} onChangeText={setUpiId} keyboardType="email-address" />
-            ) : (
-              <>
-                <TextInput style={styles.modalInput} placeholder="Account Number" keyboardType="numeric" value={bankAccount.accountNumber} onChangeText={(text) => setBankAccount({ ...bankAccount, accountNumber: text })} />
-                <TextInput style={styles.modalInput} placeholder="IFSC Code" value={bankAccount.ifsc} onChangeText={(text) => setBankAccount({ ...bankAccount, ifsc: text })} />
-              </>
-            )}
-            <TouchableOpacity style={styles.modalButton} onPress={processPayment}>
-              <Text style={styles.modalButtonText}>Proceed</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
 
-
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    padding: 20, 
-    backgroundColor: "#f4f4f4", 
-    alignItems: "center" 
-  },
+  container: { flex: 1, backgroundColor: "#f4f4f4", alignItems: "center" },
 
-  /** ✅ Wallet Balance Styles */
-  balanceContainer: { 
-    width: "90%", 
-    backgroundColor: "#fff", 
-    padding: 20, 
-    borderRadius: 12, 
-    alignItems: "center" 
-  },
-  balanceText: { 
-    fontSize: 18, 
-    color: "#666" 
-  },
-  balanceAmount: { 
-    fontSize: 28, 
-    fontWeight: "bold", 
-    color: "#2D9CDB" 
-  },
+  /** ✅ Gradient Header */
+  header: { width: "100%", paddingVertical: 20, alignItems: "center", flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20 },
+  headerTitle: { fontSize: 20, fontWeight: "bold", color: "#fff" },
 
-    /** ✅ Button Container */
-    buttonContainer: { 
-      flexDirection: "row", 
-      justifyContent: "space-between", 
-      width: "90%", 
-      marginVertical: 20, 
-    },
-  
-    /** ✅ Add Money Button */
-    addMoneyButton: { 
-      flex: 1, 
-      backgroundColor: "#2D9CDB", 
-      paddingVertical: 15, 
-      borderRadius: 10, 
-      alignItems: "center", 
-      marginHorizontal: 5, 
-      shadowColor: "#000", 
-      shadowOffset: { width: 0, height: 3 }, 
-      shadowOpacity: 0.2, 
-      shadowRadius: 4, 
-      elevation: 5, 
-    },
-  
-    /** ✅ Transaction History Button */
-    historyButton: { 
-      flex: 1, 
-      backgroundColor: "#4CAF50", 
-      paddingVertical: 15, 
-      borderRadius: 10, 
-      alignItems: "center", 
-      marginHorizontal: 5, 
-      shadowColor: "#000", 
-      shadowOffset: { width: 0, height: 3 }, 
-      shadowOpacity: 0.2, 
-      shadowRadius: 4, 
-      elevation: 5, 
-    },
-  
-    /** ✅ Add Bank Account Button */
-    bankButton: { 
-      flex: 1, 
-      backgroundColor: "#FF9800", 
-      paddingVertical: 15, 
-      borderRadius: 10, 
-      alignItems: "center", 
-      marginHorizontal: 5, 
-      shadowColor: "#000", 
-      shadowOffset: { width: 0, height: 3 }, 
-      shadowOpacity: 0.2, 
-      shadowRadius: 4, 
-      elevation: 5, 
-    },
-  
-    /** ✅ Button Text (for all buttons) */
-    buttonText: { 
-      color: "#fff", 
-      fontSize: 16, 
-      fontWeight: "bold", 
-    },
+  /** ✅ Balance Card */
+  balanceCard: { backgroundColor: "#fff", padding: 20, borderRadius: 12, width: "90%", alignItems: "center", elevation: 4, marginVertical: 15 },
+  balanceText: { fontSize: 16, color: "#666" },
+  balanceAmount: { fontSize: 28, fontWeight: "bold", color: "#7303c0" },
 
+  /** ✅ Navigation Menu */
+  menuContainer: { flexDirection: "row", justifyContent: "space-between", width: "90%", marginVertical: 15 },
+  menuButton: { flex: 1, backgroundColor: "#7303c0", padding: 15, borderRadius: 10, alignItems: "center", marginHorizontal: 5, elevation: 5 },
+  menuText: { color: "#fff", fontSize: 14, fontWeight: "bold", marginTop: 5 },
 
-  /** ✅ Coin Selection Styles */
-  coinGrid: { 
-    flexDirection: "row", 
-    flexWrap: "wrap", 
-    justifyContent: "center", 
-    marginVertical: 15 
-  },
-  coinButton: { 
-    padding: 15, 
-    backgroundColor: "#e0e0e0", 
-    borderRadius: 10, 
-    margin: 5, 
-    minWidth: 80, 
-    alignItems: "center" 
-  },
-  selectedCoin: { 
-    backgroundColor: "#2D9CDB" 
-  },
-  coinText: { 
-    fontSize: 16, 
-    fontWeight: "bold" 
-  },
-
-  /** ✅ Custom Amount Input */
-  input: { 
-    width: "90%", 
-    padding: 15, 
-    backgroundColor: "#fff", 
-    borderRadius: 10, 
-    marginTop: 10, 
-    textAlign: "center" 
-  },
+  /** ✅ Coin Selection */
+  sectionTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 10, color: "#333" },
+  coinGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", marginVertical: 10 },
+  coinButton: { padding: 15, backgroundColor: "#e0e0e0", borderRadius: 10, margin: 5, minWidth: 80, alignItems: "center" },
+  selectedCoin: { backgroundColor: "#7303c0" },
+  coinText: { fontSize: 16, fontWeight: "bold", color: "#fff" },
 
   /** ✅ Buy Now Button */
-  buyButton: { 
-    marginTop: 20, 
-    padding: 15, 
-    backgroundColor: "#2D9CDB", 
-    borderRadius: 10, 
-    alignItems: "center", 
-    width: "90%" 
-  },
-  buyButtonText: { 
-    color: "#fff", 
-    fontSize: 18, 
-    fontWeight: "bold" 
-  },
-
-  /** ✅ Payment Modal Styles */
-  modalOverlay: { 
-    flex: 1, 
-    backgroundColor: "rgba(0,0,0,0.5)", 
-    justifyContent: "center", 
-    alignItems: "center" 
-  },
-  modalContainer: { 
-    width: "90%", 
-    backgroundColor: "#fff", 
-    padding: 20, 
-    borderRadius: 12, 
-    alignItems: "center", 
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.25, 
-    shadowRadius: 4, 
-    elevation: 5 
-  },
-
-  /** ✅ Close Button */
-  closeButton: { 
-    alignSelf: "flex-end", 
-    backgroundColor: "#FF4444", 
-    padding: 5, 
-    borderRadius: 20 
-  },
-  closeButtonText: { 
-    color: "#fff", 
-    fontSize: 18, 
-    fontWeight: "bold" 
-  },
-
-  /** ✅ Modal Title */
-  modalTitle: { 
-    fontSize: 22, 
-    fontWeight: "bold", 
-    marginVertical: 10, 
-    color: "#333" 
-  },
-
-  /** ✅ Modal Input Fields */
-  modalInput: { 
-    width: "100%", 
-    padding: 15, 
-    backgroundColor: "#f8f8f8", 
-    borderWidth: 1, 
-    borderColor: "#ddd", 
-    borderRadius: 10, 
-    marginBottom: 10, 
-    fontSize: 16, 
-    textAlign: "center" 
-  },
-
-  /** ✅ Modal Proceed Button */
-  modalButton: { 
-    marginTop: 10, 
-    paddingVertical: 12, 
-    width: "100%", 
-    backgroundColor: "#2D9CDB", 
-    borderRadius: 8, 
-    alignItems: "center" 
-  },
-  modalButtonText: { 
-    color: "#fff", 
-    fontSize: 16, 
-    fontWeight: "bold" 
-  }
+  buyButton: { padding: 15, backgroundColor: "#7303c0", borderRadius: 10, alignItems: "center", width: "90%", marginTop: 20 },
+  buyButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 });
-
 
 export default HomeScreen;
